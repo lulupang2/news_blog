@@ -25,6 +25,12 @@ jobs:
       - name: Install dependencies
         run: vlt install
 
+      - name: Pull latest changes
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
+
       - name: Run Fetch Script
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
