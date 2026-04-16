@@ -74,7 +74,11 @@ export async function getPostData(id: string): Promise<PostData> {
     const match = line.match(/^(#{2,3})\s+(.*)$/);
     if (match) {
       const level = match[1].length;
-      const text = match[2].trim();
+      let text = match[2].trim();
+      
+      // Strip leading numbers (e.g., "1.", "1.1.") if Gemini already provided them
+      text = text.replace(/^\d+(\.\d+)*\.?\s*/, '').trim();
+      
       const levelIndex = level - 2;
       
       counts[levelIndex]++;
