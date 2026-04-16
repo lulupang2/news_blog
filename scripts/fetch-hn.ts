@@ -1,0 +1,149 @@
+import fs from 'fs/promises';
+import path from 'path';
+import * as cheerio from 'cheerio';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import dotenv from 'dotenv';
+
+dotenv.config({ path: '.env.local' });
+dotenv.config();
+
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
+const ai = GEMINI_API_KEY ? new GoogleGenerativeAI(GEMINI_API_KEY) : null;
+
+async function fetchHtmlText(url: string) {
+  try {
+    const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) HN-Auto-Blog/1.0' } });
+    if (!res.ok) return '';
+    const html = await res.text();
+    const $ = cheerio.load(html);
+
+    // 불필요한 태그 날리기
+    $('script, style, nav, header, footer, noscript, iframe').remove();
+    let text = $('body').text();
+
+    // 가벼운 정리
+    text = text.replace(/\s+/g, ' ').trim();
+    return text.substring(0, 10000);
+  } catch (err) {
+    console.error(`URL 파싱 실패 ${url}:`, err);
+    return '';
+  }
+}
+
+async function main() {
+  if (!GEMINI_API_KEY) {
+    console.warn("⚠️ GEMINI_API_KEY가 없습니다! .env 파일에 세팅해주세요.");
+  }
+
+  const postsDir = path.join(process.cwd(), 'posts');
+  await fs.mkdir(postsDir, { recursive: true });
+
+  console.log('해커뉴스 가져오는 중...');
+
+  // 커맨드라인 인자로 ID를 받았는지 확인 (수동 작업용)
+  const argId = process.argv[2];
+  let targetIds: number[] = [];
+
+  if (argId && !isNaN(parseInt(argId))) {
+    console.log(`수동 모드: 게시물 ID ${argId}를 직접 가져옵니다.`);
+    targetIds = [parseInt(argId)];
+  } else {
+    const topRes = await fetch('https://hacker-news.firebaseio.com/v0/topstories.json');
+    const topIds: number[] = await topRes.json();
+    // 상위 5개 뽑기
+    targetIds = topIds.slice(0, 10);
+  }
+
+  for (const id of targetIds) {
+    console.log(`\n게시물 ${id} 처리 중...`);
+    const mdPath = path.join(postsDir, `${id}.md`);
+
+    const exists = await fs.access(mdPath).then(() => true).catch(() => false);
+    if (exists) {
+      console.log(`게시물 ${id}은(는) 이미 있어서 패스함 ㅇㅇ`);
+      continue;
+    }
+
+    const itemRes = await fetch(`https://hacker-news.firebaseio.com/v0/item/${id}.json`);
+    const item = await itemRes.json();
+
+    if (!item || item.type !== 'story') continue;
+
+    console.log(`원문 제목: ${item.title}`);
+
+    let contentToProcess = item.text || '';
+    if (item.url) {
+      console.log(`본문 긁어오는 중... (${item.url})`);
+      const externalText = await fetchHtmlText(item.url);
+      if (externalText) {
+        contentToProcess = externalText;
+      }
+    }
+
+    let translatedTitle = item.title;
+    let summary = '이 글은 내용이 없거나 요약할 수 없습니다 ㅈㅅ';
+    let fullTranslation = '';
+
+    // 갓성비 Gemini로 번역과 요약을 한 번에 처리
+    if (ai && (contentToProcess || item.title)) {
+      console.log(`Gemini로 번역 & 전체 본문 작업 드가는 중...`);
+      try {
+        const prompt = `너는 해커뉴스(Hacker News)의 최신 기술 정보를 한국 IT 커뮤니티(디시인사이드, 펨코 등) 감성으로 전달하는 전문 블로거야.
+다음 정보를 바탕으로 JSON 형식으로 출력해줘.
+
+1. 제목 원문: "${item.title}"
+2. 기사 본문(일부): "${contentToProcess.substring(0, 15000)}"
+
+출력 양식(JSON):
+{
+  "translatedTitle": "기사 제목을 자연스럽고 찰진 한국어로 번역해서 넣어줘",
+  "summary": "1~2줄 정도의 매우 짧은 요약(카드 미리보기용)",
+  "fullTranslation": "본문 전체를 한국어로 번역해서 마크다운 형식으로 넣어줘. 
+                    ## 또는 ### 같은 헤더를 적극적으로 사용해서 나무위키처럼 구조화해줘. 
+                    말투는 친근한 개발자 할배 느낌(반말과 존댓말 섞어서 찰지게)으로 해줘."
+}
+
+JSON 외의 다른 텍스트는 출력하지 마.`;
+
+        const model = ai.getGenerativeModel({ model: 'gemini-3-flash-preview' });
+        const result = await model.generateContent(prompt);
+        const responseText = result.response.text();
+
+        // JSON 파싱 (백틱 제거 등 처리)
+        const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          translatedTitle = parsed.translatedTitle || translatedTitle;
+          summary = parsed.summary || summary;
+          fullTranslation = parsed.fullTranslation || '';
+        }
+      } catch (err) {
+        console.error('Gemini 처리 에러:', err);
+      }
+    }
+
+    const date = new Date(item.time * 1000).toISOString();
+
+    const mdContent = `---
+id: "${item.id}"
+title: "${item.title.replace(/"/g, '\\"')}"
+translatedTitle: "${translatedTitle.replace(/"/g, '\\"')}"
+url: "${item.url || `https://news.ycombinator.com/item?id=${item.id}`}"
+author: "${item.by}"
+score: ${item.score}
+commentsCount: ${item.descendants || 0}
+date: "${date}"
+summary: "${summary.replace(/"/g, '\\"')}"
+---
+
+${fullTranslation || summary}
+`;
+
+    await fs.writeFile(mdPath, mdContent, 'utf-8');
+    console.log(`저장 완료: ${id}.md`);
+  }
+
+  console.log('\n모든 작업 끗!');
+}
+
+main().catch(console.error);

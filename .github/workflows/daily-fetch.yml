@@ -1,0 +1,37 @@
+name: Daily Hacker News Fetch
+
+on:
+  schedule:
+    - cron: '0 15 * * *' # 매일 한국 시간 기준 밤 12시 (UTC 15:00)
+  workflow_dispatch: # 수동 실행 가능
+
+jobs:
+  fetch-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install vlt
+        run: npm install -g vlt
+
+      - name: Install dependencies
+        run: vlt install
+
+      - name: Run Fetch Script
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: npx tsx scripts/fetch-hn.ts
+
+      - name: Commit and Push changes
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "🤖 자동 업데이트: 최신 해커뉴스 소식 줍줍함"
+          file_pattern: 'posts/*.md'
