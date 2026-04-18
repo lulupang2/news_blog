@@ -74,10 +74,11 @@ export async function getPostData(id: string): Promise<PostData> {
     const match = line.match(/^(#{2,3})\s+(.*)$/);
     if (match) {
       const level = match[1].length;
-      let text = match[2].trim();
+      const rawText = match[2].trim();
+      let cleanedText = rawText;
       
       // Strip leading numbers (e.g., "1.", "1.1.") if Gemini already provided them
-      text = text.replace(/^\d+(\.\d+)*\.?\s*/, '').trim();
+      cleanedText = cleanedText.replace(/^\d+(\.\d+)*\.?\s*/, '').trim();
       
       const levelIndex = level - 2;
       
@@ -85,9 +86,9 @@ export async function getPostData(id: string): Promise<PostData> {
       for (let i = levelIndex + 1; i < counts.length; i++) counts[i] = 0;
       
       const numberStr = counts.slice(0, levelIndex + 1).join('.') + '.';
-      const headerId = text.toLowerCase().replace(/[^a-z0-9가-힣]+/g, '-').replace(/(^-|-$)/g, '');
+      const headerId = cleanedText.toLowerCase().replace(/[^a-z0-9가-힣]+/g, '-').replace(/(^-|-$)/g, '');
       
-      toc.push({ id: headerId, text, level, numberStr });
+      toc.push({ id: headerId, text: cleanedText, level, numberStr, rawText } as any);
     }
   });
 
@@ -97,11 +98,11 @@ export async function getPostData(id: string): Promise<PostData> {
   
   // Add IDs and Numbers to headers in HTML
   let contentHtml = processedContent.toString();
-  toc.forEach(entry => {
+  toc.forEach((entry: any) => {
     const tag = `h${entry.level}`;
-    const escapedText = entry.text.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-    const regex = new RegExp(`<${tag}>${escapedText}<\/${tag}>`, 'g');
-    // Prepend number to the heading inside the content
+    const escapedRawText = entry.rawText.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+    const regex = new RegExp(`<${tag}>${escapedRawText}<\/${tag}>`, 'g');
+    // Replace the entire tag content with the new numbered and cleaned text
     contentHtml = contentHtml.replace(regex, `<${tag} id="${entry.id}">${entry.numberStr} ${entry.text}</${tag}>`);
   });
 
