@@ -133,13 +133,34 @@ export default function HomeClient({ posts }: HomeClientProps) {
               whileHover={{ y: -8 }}
               className="bg-white dark:bg-[#1e1e1e] rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all border border-gray-50 dark:border-gray-800 flex flex-col h-full"
             >
-              <Link href={`/posts/${post.id}`} className="flex flex-col h-full">
-                {/* Thumbnail Area with Gradient */}
-                <div className={`h-40 w-full bg-gradient-to-br transition-opacity group-hover:opacity-90 ${
-                  ['from-sky-400 to-indigo-500', 'from-rose-400 to-purple-500', 'from-amber-400 to-orange-500', 'from-emerald-400 to-teal-500', 'from-fuchsia-400 to-pink-500'][idx % 5]
-                } flex items-center justify-center relative overflow-hidden text-white`}>
-                   <div className="absolute inset-0 bg-black/5" />
-                   <span className="text-5xl opacity-40 select-none relative z-10">🛡️</span>
+              <Link href={`/posts/${post.id}`} className="flex flex-col h-full group">
+                {/* Thumbnail Area with Image or Gradient fallback */}
+                <div className={`h-48 w-full relative overflow-hidden flex items-center justify-center text-white ${
+                  post.image ? 'bg-gray-100 dark:bg-gray-800' : 
+                  ['bg-gradient-to-br from-sky-400 to-indigo-500', 'bg-gradient-to-br from-rose-400 to-purple-500', 'bg-gradient-to-br from-amber-400 to-orange-500', 'bg-gradient-to-br from-emerald-400 to-teal-500', 'bg-gradient-to-br from-fuchsia-400 to-pink-500'][idx % 5]
+                }`}>
+                   {post.image ? (
+                     <img 
+                       src={post.image} 
+                       alt={post.translatedTitle} 
+                       className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                       onError={(e) => {
+                         // 이미지 에러 시 그라데이션으로 폴백
+                         (e.target as HTMLImageElement).style.display = 'none';
+                         const parent = (e.target as HTMLImageElement).parentElement;
+                         if (parent) {
+                           parent.classList.add('bg-gradient-to-br', 'from-slate-400', 'to-slate-600');
+                           const emoji = document.createElement('span');
+                           emoji.innerText = '🛡️';
+                           emoji.className = 'text-5xl opacity-40';
+                           parent.appendChild(emoji);
+                         }
+                       }}
+                     />
+                   ) : (
+                     <span className="text-5xl opacity-40 select-none relative z-10 transition-transform duration-500 group-hover:scale-110">🛡️</span>
+                   )}
+                   <div className="absolute inset-0 bg-black/5 group-hover:bg-black/0 transition-colors" />
                 </div>
 
                 {/* Content */}

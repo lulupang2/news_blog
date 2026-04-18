@@ -25,6 +25,7 @@ export interface PostData {
   summary: string;
   contentHtml: string;
   toc: TocEntry[];
+  image?: string;
 }
 
 export function getSortedPostsData(): Omit<PostData, 'contentHtml' | 'toc'>[] {

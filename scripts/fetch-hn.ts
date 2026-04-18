@@ -13,20 +13,24 @@ const ai = GEMINI_API_KEY ? new GoogleGenerativeAI(GEMINI_API_KEY) : null;
 async function fetchHtmlText(url: string) {
   try {
     const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) HN-Auto-Blog/1.0' } });
-    if (!res.ok) return '';
+    if (!res.ok) return { text: '', ogImage: '' };
     const html = await res.text();
     const $ = cheerio.load(html);
 
+    // og:image 추출
+    const ogImage = $('meta[property="og:image"]').attr('content') || 
+                   $('meta[name="twitter:image"]').attr('content') || '';
+    
     // 불필요한 태그 날리기
     $('script, style, nav, header, footer, noscript, iframe').remove();
     let text = $('body').text();
 
     // 가벼운 정리
     text = text.replace(/\s+/g, ' ').trim();
-    return text.substring(0, 10000);
+    return { text: text.substring(0, 10000), ogImage };
   } catch (err) {
     console.error(`URL 파싱 실패 ${url}:`, err);
-    return '';
+    return { text: '', ogImage: '' };
   }
 }
 
@@ -72,12 +76,15 @@ async function main() {
     console.log(`원문 제목: ${item.title}`);
 
     let contentToProcess = item.text || '';
+    let thumbnail = '';
+
     if (item.url) {
       console.log(`본문 긁어오는 중... (${item.url})`);
-      const externalText = await fetchHtmlText(item.url);
-      if (externalText) {
-        contentToProcess = externalText;
+      const siteData = await fetchHtmlText(item.url);
+      if (siteData.text) {
+        contentToProcess = siteData.text;
       }
+      thumbnail = siteData.ogImage;
     }
 
     let translatedTitle = item.title;
@@ -134,6 +141,7 @@ score: ${item.score}
 commentsCount: ${item.descendants || 0}
 date: "${date}"
 summary: "${summary.replace(/"/g, '\\"')}"
+image: "${thumbnail}"
 ---
 
 ${fullTranslation || summary}
