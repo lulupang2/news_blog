@@ -11,7 +11,7 @@ interface HomeClientProps {
 export default function HomeClient({ posts }: HomeClientProps) {
   const [isMounted, setIsMounted] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
-  const [sortBy, setSortBy] = useState<"trending" | "recent" | "comments">("trending")
+  const [sortBy, setSortBy] = useState<"trending" | "recent" | "comments">("recent")
 
   useEffect(() => {
     setIsMounted(true)
