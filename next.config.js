@@ -7,4 +7,4 @@ const nextConfig = {
   basePath: '/news_blog',
 };
 
-export default nextConfig;
+module.exports = nextConfig;
