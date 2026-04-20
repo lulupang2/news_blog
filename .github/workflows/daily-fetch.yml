@@ -5,6 +5,9 @@ on:
     - cron: '0 15 * * *' # 매일 한국 시간 기준 밤 12시 (UTC 15:00)
   workflow_dispatch: # 수동 실행 가능
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   fetch-and-push:
     runs-on: ubuntu-latest
