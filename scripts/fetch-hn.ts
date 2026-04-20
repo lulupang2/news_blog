@@ -111,16 +111,13 @@ async function main() {
 
 JSON 외의 다른 텍스트는 출력하지 마.`;
 
-      // 다중 모델 폴백 및 백오프 로직
+      // 재시도 로직 (최대 3번, 모델: gemini-3-flash-preview 고정)
       let retries = 3;
-      const fallbackModels = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-2.5-flash'];
-      let modelIndex = 0;
 
       while (retries > 0) {
         try {
-          const currentModel = fallbackModels[modelIndex % fallbackModels.length];
-          console.log(`[시도 ${4 - retries}/3] ${currentModel} 모델로 생성 중...`);
-          const model = ai.getGenerativeModel({ model: currentModel });
+          console.log(`[시도 ${4 - retries}/3] gemini-3-flash-preview 모델로 생성 중...`);
+          const model = ai.getGenerativeModel({ model: 'gemini-3-flash-preview' });
           const result = await model.generateContent(prompt);
           const responseText = result.response.text();
 
@@ -135,15 +132,12 @@ JSON 외의 다른 텍스트는 출력하지 마.`;
           break; // 성공하면 루프 탈출
         } catch (err: any) {
           console.error(`Gemini 처리 에러 (${err.statusText || err.message}): 남은 재시도 ${retries - 1}`);
-          modelIndex++;
           retries--;
           if (retries === 0) {
             console.error('⚠️ 최대 재시도 횟수 초과. 이번 기사는 기본 메타데이터만 저장합니다.');
           } else {
-            // 대기 시간을 10초, 20초로 점진적 증가 (Backoff)
-            const delay = (4 - retries) * 10000;
-            console.log(`서버 폭주 방지: ${delay / 1000}초 대기 후 다른 모델로 재시도합니다...`);
-            await new Promise(resolve => setTimeout(resolve, delay));
+            console.log(`서버 폭주 방지: 5초 대기 후 다시 시도합니다...`);
+            await new Promise(resolve => setTimeout(resolve, 5000));
           }
         }
       }
