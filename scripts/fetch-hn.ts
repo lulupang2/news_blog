@@ -94,8 +94,7 @@ async function main() {
     // 갓성비 Gemini로 번역과 요약을 한 번에 처리
     if (ai && (contentToProcess || item.title)) {
       console.log(`Gemini로 번역 & 전체 본문 작업 드가는 중...`);
-      try {
-        const prompt = `너는 해커뉴스(Hacker News)의 최신 기술 정보를 한국 IT 커뮤니티(디시인사이드, 펨코 등) 감성으로 전달하는 전문 블로거야.
+      const prompt = `너는 해커뉴스(Hacker News)의 최신 기술 정보를 한국 IT 커뮤니티(디시인사이드, 펨코 등) 감성으로 전달하는 전문 블로거야.
 다음 정보를 바탕으로 JSON 형식으로 출력해줘.
 
 1. 제목 원문: "${item.title}"
@@ -112,20 +111,33 @@ async function main() {
 
 JSON 외의 다른 텍스트는 출력하지 마.`;
 
-        const model = ai.getGenerativeModel({ model: 'gemini-3-flash-preview' });
-        const result = await model.generateContent(prompt);
-        const responseText = result.response.text();
+      // 재시도 로직 (최대 3번)
+      let retries = 3;
+      while (retries > 0) {
+        try {
+          const model = ai.getGenerativeModel({ model: 'gemini-2.5-flash' });
+          const result = await model.generateContent(prompt);
+          const responseText = result.response.text();
 
-        // JSON 파싱 (백틱 제거 등 처리)
-        const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          const parsed = JSON.parse(jsonMatch[0]);
-          translatedTitle = parsed.translatedTitle || translatedTitle;
-          summary = parsed.summary || summary;
-          fullTranslation = parsed.fullTranslation || '';
+          // JSON 파싱 (백틱 제거 등 처리)
+          const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            const parsed = JSON.parse(jsonMatch[0]);
+            translatedTitle = parsed.translatedTitle || translatedTitle;
+            summary = parsed.summary || summary;
+            fullTranslation = parsed.fullTranslation || '';
+          }
+          break; // 성공하면 루프 탈출
+        } catch (err: any) {
+          console.error(`Gemini 처리 에러 (남은 재시도: ${retries - 1}):`, err.message);
+          retries--;
+          if (retries === 0) {
+            console.error('최대 재시도 횟수 초과. 이번 기사는 기본 메타데이터만 저장합니다.');
+          } else {
+            console.log('5초 대기 후 다시 시도합니다...');
+            await new Promise(resolve => setTimeout(resolve, 5000));
+          }
         }
-      } catch (err) {
-        console.error('Gemini 처리 에러:', err);
       }
     }
 
