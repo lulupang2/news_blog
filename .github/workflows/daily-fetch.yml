@@ -22,17 +22,17 @@ jobs:
         with:
           node-version: 22
 
-      - name: Install vlt
-        run: npm install -g vlt
-
-      - name: Install dependencies
-        run: vlt install
-
       - name: Pull latest changes
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git pull --rebase origin main
+
+      - name: Install vlt
+        run: npm install -g vlt
+
+      - name: Install dependencies
+        run: vlt install
 
       - name: Run Fetch Script
         env:
