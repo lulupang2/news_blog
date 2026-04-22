@@ -116,10 +116,10 @@ JSON 외의 다른 텍스트는 절대 출력하지 말고 무조건 완벽한 J
 
       while (retries > 0) {
         try {
-          console.log(`[시도 ${4 - retries}/3] llama3-70b-8192 모델로 생성 중...`);
+          console.log(`[시도 ${4 - retries}/3] llama-3.3-70b-versatile 모델로 생성 중...`);
           const chatCompletion = await groq.chat.completions.create({
             messages: [{ role: 'user', content: prompt }],
-            model: 'llama3-70b-8192',
+            model: 'llama-3.3-70b-versatile',
             response_format: { type: 'json_object' }
           });
           const responseText = chatCompletion.choices[0]?.message?.content || "";
