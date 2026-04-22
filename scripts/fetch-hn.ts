@@ -143,6 +143,12 @@ JSON 외의 다른 텍스트는 출력하지 마.`;
       }
     }
 
+    // AI 요약에 실패했거나 원문 자체가 너무 부실한 경우 업로드 스킵
+    if (!fullTranslation || summary === '이 글은 내용이 없거나 요약할 수 없습니다 ㅈㅅ') {
+      console.warn(`⚠️ 요약 실패(또는 내용 부족)로 게시물 ${id} 저장을 건너뜁니다.`);
+      continue;
+    }
+
     const date = new Date(item.time * 1000).toISOString();
 
     const mdContent = `---
