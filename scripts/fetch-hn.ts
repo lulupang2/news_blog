@@ -116,8 +116,8 @@ JSON 외의 다른 텍스트는 출력하지 마.`;
 
       while (retries > 0) {
         try {
-          console.log(`[시도 ${4 - retries}/3] gemini-3-flash-preview 모델로 생성 중...`);
-          const model = ai.getGenerativeModel({ model: 'gemini-3-flash-preview' });
+          console.log(`[시도 ${4 - retries}/3] gemini-2.0-flash 모델로 생성 중... (안정적인 정식 버전)`);
+          const model = ai.getGenerativeModel({ model: 'gemini-2.0-flash' });
           const result = await model.generateContent(prompt);
           const responseText = result.response.text();
 
