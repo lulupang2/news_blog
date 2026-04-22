@@ -55,7 +55,7 @@ async function main() {
     const topRes = await fetch('https://hacker-news.firebaseio.com/v0/topstories.json');
     const topIds: number[] = await topRes.json();
     // 상위 5개 뽑기
-    targetIds = topIds.slice(0, 10);
+    targetIds = topIds.slice(0, 15);
   }
 
   for (const id of targetIds) {
@@ -130,7 +130,7 @@ JSON 외의 다른 텍스트는 절대 출력하지 말고 무조건 완벽한 J
           translatedTitle = parsed.translatedTitle || translatedTitle;
           summary = parsed.summary || summary;
           fullTranslation = parsed.fullTranslation || '';
-          
+
           break; // 성공하면 루프 탈출
         } catch (err: any) {
           console.error(`Groq 처리 에러 (${err.statusText || err.message}): 남은 재시도 ${retries - 1}`);
