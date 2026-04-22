@@ -18,9 +18,9 @@ async function fetchHtmlText(url: string) {
     const $ = cheerio.load(html);
 
     // og:image 추출
-    const ogImage = $('meta[property="og:image"]').attr('content') || 
-                   $('meta[name="twitter:image"]').attr('content') || '';
-    
+    const ogImage = $('meta[property="og:image"]').attr('content') ||
+      $('meta[name="twitter:image"]').attr('content') || '';
+
     // 불필요한 태그 날리기
     $('script, style, nav, header, footer, noscript, iframe').remove();
     let text = $('body').text();
@@ -88,7 +88,7 @@ async function main() {
     }
 
     let translatedTitle = item.title;
-    let summary = '이 글은 내용이 없거나 요약할 수 없습니다 ㅈㅅ';
+    let summary = '이 글은 내용이 없거나 요약할 수 없습니다';
     let fullTranslation = '';
 
     // 갓성비 Gemini로 번역과 요약을 한 번에 처리
@@ -144,7 +144,7 @@ JSON 외의 다른 텍스트는 출력하지 마.`;
     }
 
     // AI 요약에 실패했거나 원문 자체가 너무 부실한 경우 업로드 스킵
-    if (!fullTranslation || summary === '이 글은 내용이 없거나 요약할 수 없습니다 ㅈㅅ') {
+    if (!fullTranslation || summary === '이 글은 내용이 없거나 요약할 수 없습니다') {
       console.warn(`⚠️ 요약 실패(또는 내용 부족)로 게시물 ${id} 저장을 건너뜁니다.`);
       continue;
     }
