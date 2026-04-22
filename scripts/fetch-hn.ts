@@ -152,12 +152,13 @@ JSON 외의 다른 텍스트는 절대 출력하지 말고 무조건 완벽한 J
     }
 
     const date = new Date(item.time * 1000).toISOString();
+    const sourceUrl = item.url || `https://news.ycombinator.com/item?id=${item.id}`;
 
     const mdContent = `---
 id: "${item.id}"
 title: "${item.title.replace(/"/g, '\\"')}"
 translatedTitle: "${translatedTitle.replace(/"/g, '\\"')}"
-url: "${item.url || `https://news.ycombinator.com/item?id=${item.id}`}"
+url: "${sourceUrl}"
 author: "${item.by}"
 score: ${item.score}
 commentsCount: ${item.descendants || 0}
@@ -165,6 +166,8 @@ date: "${date}"
 summary: "${summary.replace(/"/g, '\\"')}"
 image: "${thumbnail}"
 ---
+
+> **🔗 원문 보러가기:** [${item.title.replace(/\[/g, '(').replace(/\]/g, ')')}](${sourceUrl})
 
 ${fullTranslation || summary}
 `;
