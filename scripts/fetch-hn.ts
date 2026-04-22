@@ -1,14 +1,14 @@
 import fs from 'fs/promises';
 import path from 'path';
 import * as cheerio from 'cheerio';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import Groq from 'groq-sdk';
 import dotenv from 'dotenv';
 
 dotenv.config({ path: '.env.local' });
 dotenv.config();
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
-const ai = GEMINI_API_KEY ? new GoogleGenerativeAI(GEMINI_API_KEY) : null;
+const GROQ_API_KEY = process.env.GROQ_API_KEY || '';
+const groq = GROQ_API_KEY ? new Groq({ apiKey: GROQ_API_KEY }) : null;
 
 async function fetchHtmlText(url: string) {
   try {
@@ -35,8 +35,8 @@ async function fetchHtmlText(url: string) {
 }
 
 async function main() {
-  if (!GEMINI_API_KEY) {
-    console.warn("⚠️ GEMINI_API_KEY가 없습니다! .env 파일에 세팅해주세요.");
+  if (!GROQ_API_KEY) {
+    console.warn("⚠️ GROQ_API_KEY가 없습니다! .env 파일에 세팅해주세요.");
   }
 
   const postsDir = path.join(process.cwd(), 'posts');
@@ -91,9 +91,9 @@ async function main() {
     let summary = '이 글은 내용이 없거나 요약할 수 없습니다';
     let fullTranslation = '';
 
-    // 갓성비 Gemini로 번역과 요약을 한 번에 처리
-    if (ai && (contentToProcess || item.title)) {
-      console.log(`Gemini로 번역 & 전체 본문 작업 드가는 중...`);
+    // 갓성비 Groq(Llama3)로 번역과 요약을 한 번에 처리
+    if (groq && (contentToProcess || item.title)) {
+      console.log(`Groq(Llama 3)로 번역 & 전체 본문 작업 드가는 중...`);
       const prompt = `너는 해커뉴스(Hacker News)의 최신 기술 정보를 한국 IT 커뮤니티(디시인사이드, 펨코 등) 감성으로 전달하는 전문 블로거야.
 다음 정보를 바탕으로 JSON 형식으로 출력해줘.
 
@@ -109,29 +109,30 @@ async function main() {
                     말투는 친근한 개발자 할배 느낌(반말과 존댓말 섞어서 찰지게)으로 해줘."
 }
 
-JSON 외의 다른 텍스트는 출력하지 마.`;
+JSON 외의 다른 텍스트는 절대 출력하지 말고 무조건 완벽한 JSON 형식만 출력해.`;
 
-      // 재시도 로직 (최대 3번, 모델: gemini-3-flash-preview 고정)
+      // 재시도 로직 (최대 3번)
       let retries = 3;
 
       while (retries > 0) {
         try {
-          console.log(`[시도 ${4 - retries}/3] gemini-2.0-flash 모델로 생성 중... (안정적인 정식 버전)`);
-          const model = ai.getGenerativeModel({ model: 'gemini-2.0-flash' });
-          const result = await model.generateContent(prompt);
-          const responseText = result.response.text();
+          console.log(`[시도 ${4 - retries}/3] llama3-70b-8192 모델로 생성 중...`);
+          const chatCompletion = await groq.chat.completions.create({
+            messages: [{ role: 'user', content: prompt }],
+            model: 'llama3-70b-8192',
+            response_format: { type: 'json_object' }
+          });
+          const responseText = chatCompletion.choices[0]?.message?.content || "";
 
-          // JSON 파싱 (백틱 제거 등 처리)
-          const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-          if (jsonMatch) {
-            const parsed = JSON.parse(jsonMatch[0]);
-            translatedTitle = parsed.translatedTitle || translatedTitle;
-            summary = parsed.summary || summary;
-            fullTranslation = parsed.fullTranslation || '';
-          }
+          // JSON 파싱 자동 (response_format 지정으로 json_object만 옴)
+          const parsed = JSON.parse(responseText);
+          translatedTitle = parsed.translatedTitle || translatedTitle;
+          summary = parsed.summary || summary;
+          fullTranslation = parsed.fullTranslation || '';
+          
           break; // 성공하면 루프 탈출
         } catch (err: any) {
-          console.error(`Gemini 처리 에러 (${err.statusText || err.message}): 남은 재시도 ${retries - 1}`);
+          console.error(`Groq 처리 에러 (${err.statusText || err.message}): 남은 재시도 ${retries - 1}`);
           retries--;
           if (retries === 0) {
             console.error('⚠️ 최대 재시도 횟수 초과. 이번 기사는 기본 메타데이터만 저장합니다.');
