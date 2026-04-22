@@ -55,7 +55,7 @@ async function main() {
     const topRes = await fetch('https://hacker-news.firebaseio.com/v0/topstories.json');
     const topIds: number[] = await topRes.json();
     // 상위 5개 뽑기
-    targetIds = topIds.slice(0, 15);
+    targetIds = topIds.slice(0, 10);
   }
 
   for (const id of targetIds) {
