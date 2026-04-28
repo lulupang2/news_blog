@@ -20,7 +20,7 @@ export default function PostClient({ post }: { post: PostData }) {
         <div className="max-w-6xl mx-auto h-full px-4 sm:px-6 flex items-center justify-between">
           <Link href="/" className="text-xl font-black tracking-tight flex items-center gap-2">
             <span className="text-2xl">👴</span>
-            <span className="hidden sm:inline font-title">버그 줍는 노인</span>
+            <span className="hidden sm:inline font-title">IT 노인정</span>
           </Link>
           <div className="flex items-center gap-4">
             {/* Nav links could go here if needed */}

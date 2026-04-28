@@ -50,7 +50,7 @@ export default function HomeClient({ posts }: HomeClientProps) {
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link href="/" className="text-2xl font-black tracking-tighter text-slate-900 dark:text-white flex items-center gap-2">
             <span className="text-3xl">👴</span>
-            <span className="font-title">버그 줍는 노인</span>
+            <span className="font-title">IT 노인정</span>
           </Link>
           <div className="flex items-center gap-4">
             <div className="relative hidden sm:block">
